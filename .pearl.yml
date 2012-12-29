@@ -1,0 +1,4 @@
+project_type:           devel
+project_name:           pearl
+portfile:               macports/Portfile
+
