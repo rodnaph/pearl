@@ -1,0 +1,148 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+use Cwd;
+use YAML qw(LoadFile);
+use LWP::UserAgent;
+use HTTP::Request::Common;
+use IPC::Run qw(start pump finish);
+use File::Basename qw(dirname);
+
+use constant CONFIG_FILE => '.pearl.yml';
+use constant DEFAULT_PORTFILE => 'Portfile';
+use constant MACPORTS_SVN => 'http://svn.macports.org/repository/macports';
+
+#
+# signal an error and exit
+#
+sub error
+{
+    my ($message) = @_;
+
+    print "Error: $message\n";
+    exit 1;
+}
+
+#
+# returns path to local Portfile
+#
+sub portfile
+{
+    my ($config) = @_;
+
+    return $config->{portfile}
+        ? $config->{portfile}
+        : DEFAULT_PORTFILE;
+}
+
+#
+# returns the project name
+#
+sub project_name
+{
+    my ($config) = @_;
+
+    return $config->{project_name}
+        ? $config->{project_name}
+        : basename(getcwd);
+}
+
+sub project_type
+{
+    my ($config) = @_;
+    my $project_type = $config->{project_type};
+
+    if (!$project_type) {
+        error('You need to specify "project_type" in ' . CONFIG_FILE);
+    }
+
+    return $config->{project_type};
+}
+
+#
+# returns the url to the projects Portfile
+#
+sub portfile_url
+{
+    my ($project_type, $project_name) = @_;
+    my $url = MACPORTS_SVN . '/trunk/dports/%s/%s/Portfile';
+
+    return sprintf($url, $project_type, $project_name);
+}
+
+#
+# Fetch the source for the latest Portfile from Macports SVN
+#
+sub fetch_portfile
+{
+    my ($project_type, $project_name) = @_;
+    my $url = portfile_url($project_type, $project_name);
+    my $ua = LWP::UserAgent->new;
+    my $res = $ua->request(GET $url);
+    my $content = $res->decoded_content;
+
+    if ($res->is_error) {
+        error($res->content);
+    }
+
+    return $content;
+}
+
+#
+# Create the diff between our portfile and the latest one
+#
+sub diff_portfile
+{
+    my ($local_portfile, $latest_portfile) = @_;
+    my @cmd = ('diff', '-u', '-', $local_portfile);
+    my $ph = start(\@cmd, \my $proc_in, \my $proc_out);
+
+    $proc_in .= $latest_portfile;
+    pump $ph;
+    finish $ph;
+
+    return $proc_out;
+}
+
+#
+# return the filename for the diff output
+#
+sub diff_filename
+{
+    my ($project_name) = @_;
+
+    return sprintf('Portfile-%s.diff', $project_name);
+}
+
+#
+# write the diff to the specified file
+#
+sub diff_write
+{
+    my ($diff_filename, $diff) = @_;
+
+    open(my $fh, '>', $diff_filename)
+        or die("Could not open '$diff_filename' for writing");
+
+    print $fh $diff;
+    close $fh;
+}
+
+#
+# main
+#
+
+my $config = LoadFile(CONFIG_FILE);
+my $project_name = project_name($config);
+my $project_type = project_type($config);
+my $local_portfile = portfile($config);
+my $latest_portfile = fetch_portfile($project_type, $project_name);
+my $diff = diff_portfile($local_portfile, $latest_portfile);
+my $diff_filename = diff_filename($project_name);
+
+diff_write($diff_filename, $diff);
+
+print "Diff written to '$diff_filename'\n";
+
