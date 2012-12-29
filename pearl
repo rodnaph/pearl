@@ -80,14 +80,13 @@ sub portfile_url
 #
 sub fetch_portfile
 {
-    my ($project_type, $project_name) = @_;
-    my $url = portfile_url($project_type, $project_name);
+    my ($portfile_url) = @_;
     my $ua = LWP::UserAgent->new;
-    my $res = $ua->request(GET $url);
+    my $res = $ua->request(GET $portfile_url);
     my $content = $res->decoded_content;
 
     if ($res->is_error) {
-        error($res->content);
+        error($content);
     }
 
     return $content;
@@ -103,6 +102,7 @@ sub diff_portfile
     my $ph = start(\@cmd, \my $proc_in, \my $proc_out);
 
     $proc_in .= $latest_portfile;
+
     pump $ph;
     finish $ph;
 
@@ -141,7 +141,8 @@ my $config = LoadFile(CONFIG_FILE);
 my $project_name = project_name($config);
 my $project_type = project_type($config);
 my $local_portfile = portfile($config);
-my $latest_portfile = fetch_portfile($project_type, $project_name);
+my $portfile_url = portfile_url($project_type, $project_name);
+my $latest_portfile = fetch_portfile($portfile_url);
 my $diff = diff_portfile($local_portfile, $latest_portfile);
 my $diff_filename = diff_filename($project_name);
 
