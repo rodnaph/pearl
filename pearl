@@ -49,6 +49,9 @@ sub project_name
         : basename(getcwd);
 }
 
+#
+# returns the project 'type' (the macports port category)
+#
 sub project_type
 {
     my ($config) = @_;
