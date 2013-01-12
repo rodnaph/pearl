@@ -16,7 +16,8 @@ long_description    \
     current Portfile with the release version from the Macports SVN repository.
 
 depends_lib         port:p5.12-ipc-run \
-                    port:p5.12-getopt-long-descriptive
+                    port:p5.12-getopt-long-descriptive \
+                    port:p5.12-yaml
 
 checksums           rmd160 87e595444812a4e9c2cf90ea66f8436341dd25aa \
                     sha256 b2fc2d0308bc200fd34b0c6bee65ff2e4a3d02ee3b1b561b77f274ae52fc010d
