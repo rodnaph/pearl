@@ -9,7 +9,9 @@ use LWP::UserAgent;
 use HTTP::Request::Common;
 use IPC::Run qw(start pump finish);
 use File::Basename qw(dirname);
+use Getopt::Long::Descriptive;
 
+use constant VERSION => '0.1.0';
 use constant CONFIG_FILE => '.pearl.yml';
 use constant DEFAULT_PORTFILE => 'Portfile';
 use constant MACPORTS_SVN => 'http://svn.macports.org/repository/macports';
@@ -120,16 +122,17 @@ sub diff_filename
 }
 
 #
-# write the diff to the specified file
+# write content to specified path
 #
-sub diff_write
+
+sub write_to
 {
-    my ($diff_filename, $diff) = @_;
+    my ($path, $content) = @_;
 
-    open(my $fh, '>', $diff_filename)
-        or die("Could not open '$diff_filename' for writing");
+    open(my $fh, '>', $path)
+        or die("Could not open '$path' for writing");
 
-    print $fh $diff;
+    print $fh $content;
     close $fh;
 }
 
@@ -137,16 +140,38 @@ sub diff_write
 # main
 #
 
+my ($opt, $usage) = describe_options(
+    "Version " . VERSION . "\nusage: pearl %o",
+    ['stdout', 'print diff to stdout instead of file'],
+    ['help', 'print usage information'],
+    ['sync', 'sync local portfile with Macports (warning: will overwrite it)']
+);
+
+print($usage->text), exit if $opt->help;
+
 my $config = LoadFile(CONFIG_FILE);
 my $project_name = project_name($config);
 my $project_type = project_type($config);
 my $local_portfile = portfile($config);
 my $portfile_url = portfile_url($project_type, $project_name);
 my $latest_portfile = fetch_portfile($portfile_url);
-my $diff = diff_portfile($local_portfile, $latest_portfile);
-my $diff_filename = diff_filename($project_name);
 
-diff_write($diff_filename, $diff);
+# sync with macports version
 
-print "Diff written to '$diff_filename'\n";
+if ($opt->sync) {
+    write_to($local_portfile, $latest_portfile);
+    print "'$local_portfile' synced with Macports!\n";
+}
+
+else {
+    my $diff = diff_portfile($local_portfile, $latest_portfile);
+    if ($opt->stdout) {
+        print $diff;
+    }
+    else {
+        my $diff_filename = diff_filename($project_name);
+        write_to($diff_filename, $diff);
+        print "Diff written to '$diff_filename'\n";
+    }
+}
 
