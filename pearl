@@ -144,6 +144,7 @@ my ($opt, $usage) = describe_options(
     "Version " . VERSION . "\nusage: pearl %o",
     ['stdout', 'print diff to stdout instead of file'],
     ['help', 'print usage information'],
+    ['version', 'version information'],
     ['sync', 'sync local portfile with Macports (warning: will overwrite it)']
 );
 
@@ -161,6 +162,10 @@ my $latest_portfile = fetch_portfile($portfile_url);
 if ($opt->sync) {
     write_to($local_portfile, $latest_portfile);
     print "'$local_portfile' synced with Macports!\n";
+}
+
+elsif($opt->version) {
+    print "Pearl v" . VERSION . "\n";
 }
 
 else {
