@@ -11,7 +11,7 @@ use IPC::Run qw(start pump finish);
 use File::Basename qw(dirname);
 use Getopt::Long::Descriptive;
 
-use constant VERSION => '0.1.0';
+use constant VERSION => '0.2.0';
 use constant CONFIG_FILE => '.pearl.yml';
 use constant DEFAULT_PORTFILE => 'Portfile';
 use constant MACPORTS_SVN => 'http://svn.macports.org/repository/macports';
